@@ -57,3 +57,17 @@ migrations['003'] = {
     await db.schema.dropTable('alice').execute()
   },
 }
+
+migrations['004'] = {
+  async up(db: Kysely<unknown>) {
+    await db.schema
+      .createTable('repost')
+      .addColumn('uri', 'varchar', (col) => col.primaryKey())
+      .addColumn('cid', 'varchar', (col) => col.notNull())
+      .addColumn('indexedAt', 'varchar', (col) => col.notNull())
+      .execute()
+  },
+  async down(db: Kysely<unknown>) {
+    await db.schema.dropTable('repost').execute()
+  },
+}

@@ -7,12 +7,12 @@ import { validateAuth } from '../auth'
 export default function (server: Server, ctx: AppContext) {
   server.app.bsky.feed.getFeedSkeleton(async ({ params, req }) => {
     const algo = algos[params.feed]
-    if (!algo) {
-      throw new InvalidRequestError(
-        'Unsupported algorithm',
-        'UnsupportedAlgorithm',
-      )
-    }
+    // if (!algo) {
+    //   throw new InvalidRequestError(
+    //     'Unsupported algorithm',
+    //     'UnsupportedAlgorithm',
+    //   )
+    // }
     /**
      * Example of how to check auth if giving user-specific results:
      *

@@ -28,6 +28,21 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         }
       })
 
+    const repostsToDelete = ops.reposts.deletes.map((del) => del.uri)
+    const repostsToCreate = ops.reposts.creates
+      .filter((create) => {
+        // only alice posts
+        return allice.find((alice) => alice.did === create.author)
+      })
+      .map((create) => {
+        // map alice-related posts to a db row
+        return {
+          uri: create.uri,
+          cid: create.cid,
+          indexedAt: new Date().toISOString(),
+        }
+      })
+
     if (postsToDelete.length > 0) {
       await this.db
         .deleteFrom('post')
@@ -38,6 +53,27 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
       await this.db
         .insertInto('post')
         .values(postsToCreate)
+        .onConflict((oc) => oc.doNothing())
+        .execute()
+    }
+
+    if (repostsToDelete.length > 0) {
+      try {
+        await this.db
+          .deleteFrom('repost')
+          .where('uri', 'in', repostsToDelete)
+          .execute()
+      } catch (e) {
+        console.log(
+          "delete failed for whatever reason it's fine:",
+          repostsToDelete,
+        )
+      }
+    }
+    if (repostsToCreate.length > 0) {
+      await this.db
+        .insertInto('repost')
+        .values(repostsToCreate)
         .onConflict((oc) => oc.doNothing())
         .execute()
     }

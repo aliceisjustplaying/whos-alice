@@ -1,5 +1,6 @@
 export type DatabaseSchema = {
   post: Post
+  repost: Repost
   user: User
   alice: Alice
   sub_state: SubState
@@ -10,6 +11,12 @@ export type Post = {
   cid: string
   replyParent: string | null
   replyRoot: string | null
+  indexedAt: string
+}
+
+export type Repost = {
+  uri: string
+  cid: string
   indexedAt: string
 }
 
