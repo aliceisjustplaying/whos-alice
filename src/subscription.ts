@@ -1,3 +1,4 @@
+import AtpAgent from '@atproto/api'
 import {
   OutputSchema as RepoEvent,
   isCommit,
@@ -5,25 +6,19 @@ import {
 import { FirehoseSubscriptionBase, getOpsByType } from './util/subscription'
 
 export class FirehoseSubscription extends FirehoseSubscriptionBase {
-  async handleEvent(evt: RepoEvent) {
+  async handleEvent(evt: RepoEvent, agent: AtpAgent) {
     if (!isCommit(evt)) return
     const ops = await getOpsByType(evt)
-
-    // This logs the text of every post off the firehose.
-    // Just for fun :)
-    // Delete before actually using
-    for (const post of ops.posts.creates) {
-      console.log(post.record.text)
-    }
-
+    const allice = await this.db.selectFrom('alice').select('did').execute()
+    // console.log('❤️❤️❤️ ALICE DIDS ❤️❤️❤️', allice)
     const postsToDelete = ops.posts.deletes.map((del) => del.uri)
     const postsToCreate = ops.posts.creates
       .filter((create) => {
-        // only alf-related posts
-        return create.record.text.toLowerCase().includes('alf')
+        // only alice posts
+        return allice.find((alice) => alice.did === create.author)
       })
       .map((create) => {
-        // map alf-related posts to a db row
+        // map alice-related posts to a db row
         return {
           uri: create.uri,
           cid: create.cid,
@@ -46,5 +41,53 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         .onConflict((oc) => oc.doNothing())
         .execute()
     }
+
+    ops.posts.creates.forEach(async (create) => {
+      const user = await this.db
+        .selectFrom('user')
+        .select('did')
+        .where('did', '=', create.author)
+        .execute()
+      if (user.length === 0) {
+        // console.log(`!!!!! fetching profile for ${create.author}`)
+        const profile = await agent.api.app.bsky.actor.getProfile({
+          actor: create.author,
+        })
+        await this.db
+          .insertInto('user')
+          .values({
+            did: create.author,
+            handle: profile.data.handle,
+            displayName: profile.data.displayName,
+            bio: profile.data.description,
+            indexedAt: new Date().toISOString(),
+          })
+          .execute()
+        if (profile.data.displayName?.toLowerCase().includes('alice')) {
+          const alice = await this.db
+            .selectFrom('alice')
+            .select('did')
+            .where('did', '=', create.author)
+            .execute()
+          if (alice.length == 0) {
+            await this.db
+              .insertInto('alice')
+              .values({
+                did: create.author,
+              })
+              .execute()
+            console.log('⭐️⭐️⭐️ !!! ALICE FOUND !!! ⭐️⭐️⭐️')
+            console.log(
+              `${create.author} is ${profile.data.handle} with display name ${profile.data.displayName}`,
+            )
+          }
+        }
+        // console.log(
+        //   `${create.author} is ${profile.data.handle} with display name ${profile.data.displayName}`,
+        // )
+      } else {
+        // console.log(user)
+      }
+    })
   }
 }

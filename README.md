@@ -1,8 +1,8 @@
 # ATProto Feed Generator
 
-🚧 Work in Progress 🚧 
+🚧 Work in Progress 🚧
 
-We are actively developing Feed Generator integration into the Bluesky PDS. Though we are reasonably confident about the general shape and interfaces laid out here, these interfaces and implementation details _are_ subject to change. 
+We are actively developing Feed Generator integration into the Bluesky PDS. Though we are reasonably confident about the general shape and interfaces laid out here, these interfaces and implementation details _are_ subject to change.
 
 In the meantime, we've put together this starter kit for devs. It doesn't do everything, but it should be enough to get you familiar with the system & started building!
 
@@ -15,6 +15,7 @@ They work very simply: the server receives a request from a user's server and re
 A Feed Generator service can host one or more algorithms. The service itself is identified by DID, while each algorithm that it hosts is declared by a record in the repo of the account that created it. For instance, feeds offered by Bluesky will likely be declared in `@bsky.app`'s repo. Therefore, a given algorithm is identified by the at-uri of the declaration record. This declaration record includes a pointer to the service's DID along with some profile information for the feed.
 
 The general flow of providing a custom algorithm to a user is as follows:
+
 - A user requests a feed from their server (PDS) using the at-uri of the declared feed
 - The PDS resolves the at-uri and finds the DID doc of the Feed Generator
 - The PDS sends a `getFeedSkeleton` request to the service endpoint declared in the Feed Generator's DID doc
@@ -32,13 +33,13 @@ We've set up this simple server with SQLite to store & query data. Feel free to 
 
 Next you will need to do two things:
 
-1. Implement indexing logic in `src/subscription.ts`. 
-   
+1. Implement indexing logic in `src/subscription.ts`.
+
    This will subscribe to the repo subscription stream on startup, parse events & index them according to your provided logic.
 
 2. Implement feed generation logic in `src/algos`
 
-   For inspiration, we've provided a very simple feed algorithm (`whats-alf`) that returns all posts related to the titular character of the TV show ALF. 
+   For inspiration, we've provided a very simple feed algorithm (`whats-alf`) that returns all posts related to the titular character of the TV show ALF.
 
    You can either edit it or add another algorithm alongside it. The types are in place an dyou will just need to return something that satisfies the `SkeletonFeedPost[]` type.
 
@@ -63,10 +64,10 @@ Install dependencies with `yarn` and then run the server with `yarn start`. This
 The skeleton that a Feed Generator puts together is, in its simplest form, a list of post URIs.
 
 ```ts
-[
-  {post: 'at://did:example:1234/app.bsky.feed.post/1'},
-  {post: 'at://did:example:1234/app.bsky.feed.post/2'},
-  {post: 'at://did:example:1234/app.bsky.feed.post/3'}
+;[
+  { post: 'at://did:example:1234/app.bsky.feed.post/1' },
+  { post: 'at://did:example:1234/app.bsky.feed.post/2' },
+  { post: 'at://did:example:1234/app.bsky.feed.post/3' },
 ]
 ```
 
@@ -102,21 +103,23 @@ If you are creating a generic feed that does not differ for different users, you
 Users are authenticated with a simple JWT signed by the user's repo signing key.
 
 This JWT header/payload takes the format:
+
 ```ts
 const header = {
-  type: "JWT",
-  alg: "ES256K" // (key algorithm) - in this case secp256k1
+  type: 'JWT',
+  alg: 'ES256K', // (key algorithm) - in this case secp256k1
 }
 const payload = {
-  iss: "did:example:alice", // (issuer) the requesting user's DID
-  aud: "did:example:feedGenerator", // (audience) the DID of the Feed Generator
-  exp: 1683643619 // (expiration) unix timestamp in seconds
+  iss: 'did:example:alice', // (issuer) the requesting user's DID
+  aud: 'did:example:feedGenerator', // (audience) the DID of the Feed Generator
+  exp: 1683643619, // (expiration) unix timestamp in seconds
 }
 ```
 
 We provide utilities for verifying user JWTs in the `@atproto/xrpc-server` package, and you can see them in action in `src/auth.ts`.
 
 ### Pagination
+
 You'll notice that the `getFeedSkeleton` method returns a `cursor` in its response & takes a `cursor` param as input.
 
 This cursor is treated as an opaque value & fully at the Feed Generator's discretion. It is simply pased through the PDS directly to & from the client.
@@ -137,10 +140,13 @@ Depending on your algorithm, you likely do not need to keep posts around for lon
 Some examples:
 
 ### Reimplementing What's Hot
+
 To reimplement "What's Hot", you may subscribe to the firehose & filter for all posts & likes (ignoring profiles/reposts/follows/etc). You would keep a running tally of likes per post & when a PDS requests a feed, you would send the most recent posts that pass some threshold of likes.
 
 ### A Community Feed
+
 You might create a feed for a given community by compiling a list of DIDs within that community & filtering the firehose for all posts from users within that list.
 
 ### A Topical Feed
+
 To implement a topical feed, you might filter the algorithm for posts and pass the post text through some filtering mechanism (an LLM, a keyword matcher, etc.) that filters for the topic of your choice.

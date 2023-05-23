@@ -15,6 +15,7 @@ import { Database } from '../db'
 
 export abstract class FirehoseSubscriptionBase {
   public sub: Subscription<RepoEvent>
+  public agent
 
   constructor(public db: Database, public service: string) {
     this.sub = new Subscription({
@@ -34,12 +35,12 @@ export abstract class FirehoseSubscriptionBase {
     })
   }
 
-  abstract handleEvent(evt: RepoEvent): Promise<void>
+  abstract handleEvent(evt: RepoEvent, agent): Promise<void>
 
-  async run() {
+  async run(agent) {
     for await (const evt of this.sub) {
       try {
-        await this.handleEvent(evt)
+        await this.handleEvent(evt, agent)
       } catch (err) {
         console.error('repo subscription could not handle message', err)
       }

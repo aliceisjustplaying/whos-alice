@@ -9,6 +9,8 @@ import { createDb, Database, migrateToLatest } from './db'
 import { FirehoseSubscription } from './subscription'
 import { AppContext, Config } from './config'
 import wellKnown from './well-known'
+import AtpAgent from '@atproto/api'
+import * as process from 'node:process'
 
 export class FeedGenerator {
   public app: express.Application
@@ -16,6 +18,8 @@ export class FeedGenerator {
   public db: Database
   public firehose: FirehoseSubscription
   public cfg: Config
+  public agent: AtpAgent
+  public didResolver: DidResolver
 
   constructor(
     app: express.Application,
@@ -31,7 +35,7 @@ export class FeedGenerator {
 
   static create(cfg: Config) {
     const app = express()
-    const db = createDb(cfg.sqliteLocation)
+    const db = createDb(cfg.postgresConnectionString)
     const firehose = new FirehoseSubscription(db, cfg.subscriptionEndpoint)
 
     const didCache = new MemoryCache()
@@ -63,7 +67,13 @@ export class FeedGenerator {
 
   async start(): Promise<http.Server> {
     await migrateToLatest(this.db)
-    this.firehose.run()
+    this.agent = new AtpAgent({ service: 'https://bsky.social' })
+    await this.agent.login({
+      identifier: process.env.HANDLE!,
+      password: process.env.PASSWORD!,
+    })
+    console.log('logged in')
+    this.firehose.run(this.agent)
     this.server = this.app.listen(this.cfg.port)
     await events.once(this.server, 'listening')
     return this.server

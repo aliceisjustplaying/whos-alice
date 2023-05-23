@@ -29,3 +29,31 @@ migrations['001'] = {
     await db.schema.dropTable('sub_state').execute()
   },
 }
+
+migrations['002'] = {
+  async up(db: Kysely<unknown>) {
+    await db.schema
+      .createTable('user')
+      .addColumn('did', 'varchar', (col) => col.primaryKey())
+      .addColumn('handle', 'varchar', (col) => col.notNull())
+      .addColumn('displayName', 'varchar')
+      .addColumn('bio', 'varchar')
+      .addColumn('indexedAt', 'varchar', (col) => col.notNull())
+      .execute()
+  },
+  async down(db: Kysely<unknown>) {
+    await db.schema.dropTable('user').execute()
+  },
+}
+
+migrations['003'] = {
+  async up(db: Kysely<unknown>) {
+    await db.schema
+      .createTable('alice')
+      .addColumn('did', 'varchar', (col) => col.primaryKey())
+      .execute()
+  },
+  async down(db: Kysely<unknown>) {
+    await db.schema.dropTable('alice').execute()
+  },
+}
