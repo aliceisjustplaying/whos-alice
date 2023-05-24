@@ -3,7 +3,7 @@ import FeedGenerator from './server'
 
 const run = async () => {
   dotenv.config()
-  const hostname = maybeStr(process.env.FEEDGEN_HOSTNAME) ?? 'example.com'
+  const hostname = maybeStr(process.env.FEEDGEN_HOSTNAME) ?? 'localhost'
   const serviceDid =
     maybeStr(process.env.FEEDGEN_SERVICE_DID) ?? `did:web:${hostname}`
   const server = FeedGenerator.create({
@@ -17,7 +17,7 @@ const run = async () => {
   })
   await server.start()
   console.log(
-    `🤖 running feed generator at http://localhost:${server.cfg.port}`,
+    `🤖 running feed generator at http://${hostname}:${server.cfg.port}`,
   )
 }
 

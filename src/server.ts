@@ -72,7 +72,7 @@ export class FeedGenerator {
       identifier: process.env.HANDLE!,
       password: process.env.PASSWORD!,
     })
-    console.log('logged in')
+    console.log('🗝️ logged in 🗝️')
     this.firehose.run(this.agent)
     this.server = this.app.listen(this.cfg.port)
     await events.once(this.server, 'listening')
