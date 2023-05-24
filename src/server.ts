@@ -74,7 +74,7 @@ export class FeedGenerator {
     })
     console.log('🗝️ logged in 🗝️')
     this.firehose.run(this.agent)
-    this.server = this.app.listen(this.cfg.port)
+    this.server = this.app.listen(this.cfg.port, '0.0.0.0')
     await events.once(this.server, 'listening')
     return this.server
   }
