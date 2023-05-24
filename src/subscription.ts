@@ -48,6 +48,7 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         .deleteFrom('post')
         .where('uri', 'in', postsToDelete)
         .execute()
+      console.log('🗑️ new deletes 🗑️')
     }
     if (postsToCreate.length > 0) {
       await this.db
@@ -55,6 +56,7 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         .values(postsToCreate)
         .onConflict((oc) => oc.doNothing())
         .execute()
+      console.log('❗️ new posts ❗️')
     }
 
     if (repostsToDelete.length > 0) {
