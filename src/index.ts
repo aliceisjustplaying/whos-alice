@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
 import FeedGenerator from './server'
+import { AddressInfo } from 'net'
 
 const run = async () => {
   dotenv.config()
@@ -17,7 +18,9 @@ const run = async () => {
   })
   await server.start()
   console.log(
-    `🤖 running feed generator at http://${server.cfg.hostname}:${server.cfg.port}`,
+    `🤖 running feed generator at http://${server.cfg.hostname}:${
+      server.cfg.port
+    }, bound to ${(server.server?.address() as AddressInfo).address}`,
   )
 }
 

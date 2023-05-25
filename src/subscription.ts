@@ -6,19 +6,25 @@ import {
 import { FirehoseSubscriptionBase, getOpsByType } from './util/subscription'
 
 export class FirehoseSubscription extends FirehoseSubscriptionBase {
+  isAlice(alices, did) {
+    return alices.find((alice) => alice.did === did)
+  }
+
   async handleEvent(evt: RepoEvent, agent: AtpAgent) {
     if (!isCommit(evt)) return
     const ops = await getOpsByType(evt)
-    const allice = await this.db.selectFrom('alice').select('did').execute()
-    // console.log('❤️❤️❤️ ALICE DIDS ❤️❤️❤️', allice)
-    const postsToDelete = ops.posts.deletes.map((del) => del.uri)
+    const alices = await this.db.selectFrom('alice').select('did').execute()
+    // console.log('❤️❤️❤️ ALICE DIDS ❤️❤️❤️', alices)
+    const postsToDelete = ops.posts.deletes
+      .map((del) => ({
+        uri: del.uri,
+        author: del.uri.split('/')[2],
+      }))
+      .filter((del) => this.isAlice(alices, del.author))
+      .map((del) => del.uri)
     const postsToCreate = ops.posts.creates
-      .filter((create) => {
-        // only alice posts
-        return allice.find((alice) => alice.did === create.author)
-      })
+      .filter((create) => this.isAlice(alices, create.author))
       .map((create) => {
-        // map alice-related posts to a db row
         return {
           uri: create.uri,
           cid: create.cid,
@@ -28,57 +34,57 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         }
       })
 
-    const repostsToDelete = ops.reposts.deletes.map((del) => del.uri)
-    const repostsToCreate = ops.reposts.creates
-      .filter((create) => {
-        // only alice posts
-        return allice.find((alice) => alice.did === create.author)
-      })
-      .map((create) => {
-        // map alice-related posts to a db row
-        return {
-          uri: create.uri,
-          cid: create.cid,
-          indexedAt: new Date().toISOString(),
-        }
-      })
+    // const repostsToDelete = ops.reposts.deletes.map((del) => del.uri)
+    // const repostsToCreate = ops.reposts.creates
+    //   .filter((create) => {
+    //     // only alice posts
+    //     return alices.find((alice) => alice.did === create.author)
+    //   })
+    //   .map((create) => {
+    //     // map alice-related posts to a db row
+    //     return {
+    //       uri: create.uri,
+    //       cid: create.cid,
+    //       indexedAt: new Date().toISOString(),
+    //     }
+    //   })
 
     if (postsToDelete.length > 0) {
+      console.log('🗑️ new deletes 🗑️: ', postsToDelete)
       await this.db
         .deleteFrom('post')
         .where('uri', 'in', postsToDelete)
         .execute()
-      console.log('🗑️ new deletes 🗑️')
     }
     if (postsToCreate.length > 0) {
+      console.log('❗️ new posts ❗️: ', postsToCreate)
       await this.db
         .insertInto('post')
         .values(postsToCreate)
         .onConflict((oc) => oc.doNothing())
         .execute()
-      console.log('❗️ new posts ❗️')
     }
 
-    if (repostsToDelete.length > 0) {
-      try {
-        await this.db
-          .deleteFrom('repost')
-          .where('uri', 'in', repostsToDelete)
-          .execute()
-      } catch (e) {
-        console.log(
-          "delete failed for whatever reason it's fine:",
-          repostsToDelete,
-        )
-      }
-    }
-    if (repostsToCreate.length > 0) {
-      await this.db
-        .insertInto('repost')
-        .values(repostsToCreate)
-        .onConflict((oc) => oc.doNothing())
-        .execute()
-    }
+    // if (repostsToDelete.length > 0) {
+    //   try {
+    //     await this.db
+    //       .deleteFrom('repost')
+    //       .where('uri', 'in', repostsToDelete)
+    //       .execute()
+    //   } catch (e) {
+    //     console.log(
+    //       "delete failed for whatever reason it's fine:",
+    //       repostsToDelete,
+    //     )
+    //   }
+    // }
+    // if (repostsToCreate.length > 0) {
+    //   await this.db
+    //     .insertInto('repost')
+    //     .values(repostsToCreate)
+    //     .onConflict((oc) => oc.doNothing())
+    //     .execute()
+    // }
 
     ops.posts.creates.forEach(async (create) => {
       const user = await this.db
