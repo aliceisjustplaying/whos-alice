@@ -30,6 +30,7 @@ migrations['001'] = {
   },
 }
 
+// you cannot actually create a table called "user" in postgres because it's a reserved word :(
 migrations['002'] = {
   async up(db: Kysely<unknown>) {
     await db.schema
@@ -69,5 +70,21 @@ migrations['004'] = {
   },
   async down(db: Kysely<unknown>) {
     await db.schema.dropTable('repost').execute()
+  },
+}
+
+migrations['005'] = {
+  async up(db: Kysely<unknown>) {
+    await db.schema
+      .createTable('atproto_user')
+      .addColumn('did', 'varchar', (col) => col.primaryKey())
+      .addColumn('handle', 'varchar', (col) => col.notNull())
+      .addColumn('displayName', 'varchar')
+      .addColumn('bio', 'varchar')
+      .addColumn('indexedAt', 'varchar', (col) => col.notNull())
+      .execute()
+  },
+  async down(db: Kysely<unknown>) {
+    await db.schema.dropTable('atproto_user').execute()
   },
 }

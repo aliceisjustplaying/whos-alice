@@ -88,7 +88,7 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
 
     ops.posts.creates.forEach(async (create) => {
       const user = await this.db
-        .selectFrom('user')
+        .selectFrom('atproto_user')
         .select('did')
         .where('did', '=', create.author)
         .execute()
@@ -98,7 +98,7 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
           actor: create.author,
         })
         await this.db
-          .insertInto('user')
+          .insertInto('atproto_user')
           .values({
             did: create.author,
             handle: profile.data.handle,

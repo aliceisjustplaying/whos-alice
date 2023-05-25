@@ -1,7 +1,7 @@
 export type DatabaseSchema = {
   post: Post
   repost: Repost
-  user: User
+  atproto_user: User
   alice: Alice
   sub_state: SubState
 }
