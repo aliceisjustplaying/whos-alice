@@ -4,6 +4,7 @@ import {
   isCommit,
 } from './lexicon/types/com/atproto/sync/subscribeRepos'
 import { FirehoseSubscriptionBase, getOpsByType } from './util/subscription'
+import { error } from 'console'
 
 export class FirehoseSubscription extends FirehoseSubscriptionBase {
   isAlice(alices, did) {
@@ -93,20 +94,32 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         .where('did', '=', create.author)
         .execute()
       if (user.length === 0) {
-        // console.log(`!!!!! fetching profile for ${create.author}`)
-        const profile = await agent.api.app.bsky.actor.getProfile({
-          actor: create.author,
-        })
-        await this.db
-          .insertInto('atproto_user')
-          .values({
-            did: create.author,
-            handle: profile.data.handle,
-            displayName: profile.data.displayName,
-            bio: profile.data.description,
-            indexedAt: new Date().toISOString(),
+        console.log(`!!!!! fetching profile for ${create.author}`)
+        let profile
+        try {
+          profile = await agent.api.app.bsky.actor.getProfile({
+            actor: create.author,
           })
-          .execute()
+        } catch (e) {
+          console.error('error fetching profile: ', e)
+          return
+        }
+
+        try {
+          await this.db
+            .insertInto('atproto_user')
+            .values({
+              did: create.author,
+              handle: profile.data.handle,
+              displayName: profile.data.displayName,
+              bio: profile.data.description,
+              indexedAt: new Date().toISOString(),
+            })
+            .execute()
+        } catch (e) {
+          console.error('error inserting user: ', e)
+        }
+
         if (profile.data.displayName?.toLowerCase().includes('alice')) {
           const alice = await this.db
             .selectFrom('alice')

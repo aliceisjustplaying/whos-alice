@@ -38,15 +38,35 @@ export abstract class FirehoseSubscriptionBase {
   abstract handleEvent(evt: RepoEvent, agent): Promise<void>
 
   async run(agent) {
-    for await (const evt of this.sub) {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
       try {
-        await this.handleEvent(evt, agent)
+        try {
+          for await (const evt of this.sub) {
+            try {
+              await this.handleEvent(evt, agent)
+            } catch (err) {
+              console.error('repo subscription could not handle message', err)
+            }
+            // update stored cursor every 20 events or so
+            if (isCommit(evt) && evt.seq % 20 === 0) {
+              await this.updateCursor(evt.seq)
+            }
+          }
+        } catch (err) {
+          console.error(
+            'util/subscription/run/FirehoseSubscriptionBase/run got borked: ',
+            err,
+          )
+        }
       } catch (err) {
-        console.error('repo subscription could not handle message', err)
-      }
-      // update stored cursor every 20 events or so
-      if (isCommit(evt) && evt.seq % 20 === 0) {
-        await this.updateCursor(evt.seq)
+        // handle the error
+        // Wait for 2 seconds before trying to wait on the subscription again
+        console.error(
+          'We had a worse error at util/subscription/run/FirehoseSubscriptionBase/run got borked: ',
+          err,
+        )
+        await new Promise((r) => setTimeout(r, 2000))
       }
     }
   }
