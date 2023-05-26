@@ -9,7 +9,7 @@ import { createDb, Database, migrateToLatest } from './db'
 import { FirehoseSubscription } from './subscription'
 import { AppContext, Config } from './config'
 import wellKnown from './well-known'
-import AtpAgent from '@atproto/api'
+import AtpAgent, { AtpSessionData, AtpSessionEvent } from '@atproto/api'
 import * as process from 'node:process'
 
 export class FeedGenerator {
@@ -20,6 +20,7 @@ export class FeedGenerator {
   public cfg: Config
   public agent: AtpAgent
   public didResolver: DidResolver
+  public session: string | null
 
   constructor(
     app: express.Application,
@@ -67,7 +68,29 @@ export class FeedGenerator {
 
   async start(): Promise<http.Server> {
     await migrateToLatest(this.db)
-    this.agent = new AtpAgent({ service: 'https://bsky.social' })
+    this.agent = new AtpAgent({
+      service: 'https://bsky.social',
+      persistSession: (evt: AtpSessionEvent, sess?: AtpSessionData) => {
+        // store the session-data for reuse
+        switch (evt) {
+          case 'create':
+            if (!sess) throw new Error('should be unreachable')
+            this.session = JSON.stringify(sess)
+            break
+          case 'create-failed':
+            this.session = null
+            console.error('Could not create session')
+            break
+          case 'update':
+            if (!sess) throw new Error('should be unreachable')
+            this.session = JSON.stringify(sess)
+            break
+          case 'expired':
+            this.session = null
+            break
+        }
+      },
+    })
     await this.agent.login({
       identifier: process.env.HANDLE!,
       password: process.env.PASSWORD!,
