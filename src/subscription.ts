@@ -4,7 +4,6 @@ import {
   isCommit,
 } from './lexicon/types/com/atproto/sync/subscribeRepos'
 import { FirehoseSubscriptionBase, getOpsByType } from './util/subscription'
-import { error } from 'console'
 
 export class FirehoseSubscription extends FirehoseSubscriptionBase {
   isAlice(alices, did) {
@@ -35,21 +34,6 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         }
       })
 
-    // const repostsToDelete = ops.reposts.deletes.map((del) => del.uri)
-    // const repostsToCreate = ops.reposts.creates
-    //   .filter((create) => {
-    //     // only alice posts
-    //     return alices.find((alice) => alice.did === create.author)
-    //   })
-    //   .map((create) => {
-    //     // map alice-related posts to a db row
-    //     return {
-    //       uri: create.uri,
-    //       cid: create.cid,
-    //       indexedAt: new Date().toISOString(),
-    //     }
-    //   })
-
     if (postsToDelete.length > 0) {
       console.log('🗑️ new deletes 🗑️: ', postsToDelete)
       await this.db
@@ -65,27 +49,6 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         .onConflict((oc) => oc.doNothing())
         .execute()
     }
-
-    // if (repostsToDelete.length > 0) {
-    //   try {
-    //     await this.db
-    //       .deleteFrom('repost')
-    //       .where('uri', 'in', repostsToDelete)
-    //       .execute()
-    //   } catch (e) {
-    //     console.log(
-    //       "delete failed for whatever reason it's fine:",
-    //       repostsToDelete,
-    //     )
-    //   }
-    // }
-    // if (repostsToCreate.length > 0) {
-    //   await this.db
-    //     .insertInto('repost')
-    //     .values(repostsToCreate)
-    //     .onConflict((oc) => oc.doNothing())
-    //     .execute()
-    // }
 
     ops.posts.creates.forEach(async (create) => {
       const user = await this.db
