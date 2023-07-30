@@ -4,7 +4,26 @@
 	}
 }
 feeds.bsky.sh {
-	reverse_proxy :3000
+	@eepy {
+		expression path_regexp('/xrpc/app.bsky.feed.getFeedSkeleton') && {query}.matches('.+?whos-eepy.*')	
+        }
+	@alice {
+		expression path_regexp('/xrpc/app.bsky.feed.getFeedSkeleton') && {query}.matches('.+?whos-alice.*')	
+        }
+	@well-known {
+		expression path_regexp('/.well-known.*')
+	}
+	handle @eepy {
+		reverse_proxy :30001
+	}
+
+	handle @alice {
+		reverse_proxy :30000
+	}
+	handle @well-known {
+		reverse_proxy :30000
+	}
+
 	import vercel
 	log {
 		output file {env.LOG_FILE}

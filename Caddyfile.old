@@ -1,0 +1,12 @@
+(vercel) {
+	tls {
+		dns vercel {env.VERCEL_API_TOKEN}
+	}
+}
+feeds.bsky.sh {
+	reverse_proxy :3000
+	import vercel
+	log {
+		output file {env.LOG_FILE}
+	}
+}
