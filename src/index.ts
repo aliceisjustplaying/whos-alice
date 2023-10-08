@@ -12,7 +12,7 @@ const run = async () => {
     postgresConnectionString: process.env.DATABASE_URL!,
     subscriptionEndpoint:
       maybeStr(process.env.FEEDGEN_SUBSCRIPTION_ENDPOINT) ??
-      'wss://bsky.social',
+      'wss://bsky.network',
     hostname,
     serviceDid,
   })

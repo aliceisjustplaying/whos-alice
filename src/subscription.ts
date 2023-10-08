@@ -55,6 +55,7 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         .selectFrom('atproto_user')
         .select('did')
         .where('did', '=', create.author)
+        .where('indexedAt', '<=', 'CURRENT_TIMESTAMP - INTERVAL \'3 months\'')
         .execute()
       if (user.length === 0) {
         console.log(`!!!!! fetching profile for ${create.author}`)
