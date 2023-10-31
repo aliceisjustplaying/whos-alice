@@ -53,9 +53,9 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
     ops.posts.creates.forEach(async (create) => {
       const user = await this.db
         .selectFrom('atproto_user')
-        .select('did')
+        .select(['did', 'indexedAt'])
         .where('did', '=', create.author)
-        .where('indexedAt', '<=', 'CURRENT_TIMESTAMP - INTERVAL \'3 months\'')
+        // .where('indexedAt', '<=', 'CURRENT_TIMESTAMP - INTERVAL \'1 week\'')
         .execute()
       if (user.length === 0) {
         console.log(`!!!!! fetching profile for ${create.author}`)
@@ -107,7 +107,10 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         //   `${create.author} is ${profile.data.handle} with display name ${profile.data.displayName}`,
         // )
       } else {
+        // console.log(new Date(user[0].indexedAt));
         // console.log(user)
+        // let d = new Date(user[0].indexedAt);
+
       }
     })
   }
