@@ -55,7 +55,6 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         .selectFrom('atproto_user')
         .select(['did', 'indexedAt'])
         .where('did', '=', create.author)
-        // .where('indexedAt', '<=', 'CURRENT_TIMESTAMP - INTERVAL \'1 week\'')
         .execute()
       if (user.length === 0) {
         console.log(`!!!!! fetching profile for ${create.author}`)
@@ -107,10 +106,38 @@ export class FirehoseSubscription extends FirehoseSubscriptionBase {
         //   `${create.author} is ${profile.data.handle} with display name ${profile.data.displayName}`,
         // )
       } else {
-        // console.log(new Date(user[0].indexedAt));
-        // console.log(user)
-        // let d = new Date(user[0].indexedAt);
+        const userDate = new Date(user[0].indexedAt)
+        const currentDate = new Date()
+        const oneMonthAgo = new Date(currentDate)
+        oneMonthAgo.setMonth(currentDate.getMonth() - 1)
+        if (userDate < oneMonthAgo) {
+          console.log(`!!!!! recrawling profile for ${create.author}`)
+          let profile
+          try {
+            profile = await agent.api.app.bsky.actor.getProfile({
+              actor: create.author,
+            })
+          } catch (e) {
+            console.error('error fetching profile of recrawled user: ', e)
+            return
+          }
 
+          try {
+            await this.db
+              .updateTable('atproto_user')
+              .set({
+                did: create.author,
+                handle: profile.data.handle,
+                displayName: profile.data.displayName,
+                bio: profile.data.description,
+                indexedAt: new Date().toISOString(),
+              })
+              .where('did', '=', create.author)
+              .execute()
+          } catch (e) {
+            console.error('error updating recrawled user: ', e)
+          }
+        }
       }
     })
   }
